@@ -1,39 +1,56 @@
 import streamlit as st
-import src.auth_user as auth_user
+from src.movie_recommend import get_trending_movies, get_personalized_recommendations
+from src.data_fetcher import search_movie, fetch_movies_by_genre
+from src.auth import load_user_preferences
 
-def load_css():
-    """CSS 로드"""
-    st.markdown("""
-    <style>
-        .main-header { font-size: 3rem; font-weight: 700; text-align: center; }
-        .sub-header { font-size: 2rem; font-weight: 600; margin-top: 2rem; }
-        .movie-card { background-color: #282828; border-radius: 10px; padding: 1rem; }
-        .movie-title { font-size: 1.2rem; font-weight: 600; }
-    </style>
-    """, unsafe_allow_html=True)
+# ---------------- 영화 스타일 설정 ----------------
+def show_profile_setup():
+    """ 사용자 영화 취향 설정 """
+    st.title("🎬 영화 스타일 설정")
+    st.write("사용자의 선호 장르를 선택하세요.")
+    
+    genre_map = {"액션": 28, "코미디": 35, "드라마": 18, "공포": 27, "SF": 878}
+    selected_genres = st.multiselect("선호하는 장르를 선택하세요", list(genre_map.keys()))
+    
+    if st.button("저장"): 
+        user_profile = {"preferred_genres": [genre_map[genre] for genre in selected_genres]}
+        st.session_state["user_profile"] = user_profile
+        st.success("선호 장르가 저장되었습니다!")
 
-def main_header():
-    """메인 헤더"""
-    st.markdown("<h1 class='main-header'>MovieMind: 당신만의 영화 여정</h1>", unsafe_allow_html=True)
+# ---------------- 영화 검색 ----------------
+def show_movie_search():
+    """ 영화 검색 기능 """
+    st.title("🔍 영화 검색")
+    search_query = st.text_input("영화 제목을 입력하세요")
+    
+    if st.button("검색") and search_query:
+        results = search_movie(search_query)
+        if results:
+            for movie in results[:5]:
+                st.write(f"🎥 {movie['title']} ({movie.get('release_date', 'Unknown')[:4]})")
+                st.image(f"https://image.tmdb.org/t/p/w500{movie.get('poster_path', '')}", width=150)
+        else:
+            st.warning("검색된 영화가 없습니다.")
 
-def user_authentication():
-    """사용자 로그인/로그아웃 처리"""
-    session_active = auth_user.is_user_authenticated()
-    if not session_active:
-        if st.button("🔑 로그인"):
-            session_id = auth_user.create_session()
-            if session_id:
-                st.session_state["SESSION_ID"] = session_id
-                st.success("✅ 로그인 성공!")
-                st.experimental_rerun()
+# ---------------- 즐겨찾기 ----------------
+def show_favorite_movies():
+    """ 사용자가 즐겨찾기에 추가한 영화 표시 """
+    st.title("🌟 즐겨찾기 영화")
+    st.write("현재 즐겨찾기에 추가된 영화가 없습니다.")
+
+# ---------------- 추천 생성 ----------------
+def show_generated_recommendations():
+    """ 맞춤 추천 영화 생성 """
+    st.title("🎞️ 맞춤 영화 추천")
+    user_profile = st.session_state.get("user_profile", load_user_preferences())
+    
+    if user_profile:
+        movies = get_personalized_recommendations(user_profile)
+        if movies:
+            for movie in movies[:5]:
+                st.write(f"🎥 {movie['title']} ({movie.get('release_date', 'Unknown')[:4]})")
+                st.image(f"https://image.tmdb.org/t/p/w500{movie.get('poster_path', '')}", width=150)
+        else:
+            st.warning("추천할 영화가 없습니다.")
     else:
-        if st.button("🚪 로그아웃"):
-            auth_user.delete_session()
-
-def navigation_menu(logged_in):
-    """네비게이션 메뉴"""
-    return "홈"
-
-def show_footer():
-    """푸터"""
-    st.markdown("<p style='text-align: center;'>© 2025 MovieMind.</p>", unsafe_allow_html=True)
+        st.warning("사용자 프로필이 설정되지 않았습니다. 영화 스타일을 먼저 설정해주세요.")
