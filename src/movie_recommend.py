@@ -70,3 +70,27 @@ def fetch_movies_by_person(person_id: int):
     url = f"{BASE_URL}/person/{person_id}/movie_credits?api_key={API_KEY}&language=ko-KR"
     response = requests.get(url)
     return response.json().get("cast", []) if response.status_code == 200 else []
+
+
+### 무드(감정) 기반 영화 추천
+def get_mood_based_recommendations(mood: str) -> List[Dict]:
+    """
+    사용자의 감정(무드)에 따라 추천 영화 목록을 가져옵니다.
+    감정과 매핑된 장르 ID를 기반으로 영화를 필터링합니다.
+    """
+    url = f"{BASE_URL}/search/person?api_key={API_KEY}&query={mood}&language=ko-KR"
+    response = requests.get(url)
+    mood_to_genre = {
+        "행복한": [35, 10751],  # 코미디, 가족
+        "슬픈": [18, 10749],    # 드라마, 로맨스
+        "신나는": [28, 12],     # 액션, 모험
+        "로맨틱한": [10749, 35],# 로맨스, 코미디
+        "무서운": [27, 53],     # 공포, 스릴러
+        "미스터리한": [9648, 80],# 미스터리, 범죄
+        "판타지한": [14, 12],   # 판타지, 모험
+        "편안한": [99, 10770],   # 다큐멘터리, TV 영화
+        "추억을 떠올리는": [10752, 36], # 전쟁, 역사
+        "SF 같은": [878, 28]    # SF, 액션
+    }
+    return response.json().get("requests", []) if response.status_code == 200 else []
+
